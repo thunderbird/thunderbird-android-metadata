@@ -4,15 +4,13 @@ This repository contains F-Droid metadata for the K-9 Mail and Thunderbird for A
 
 ## Information
 
-We follow the Fastlane structure for our metadata: [All About Descriptions, Graphics, and Screenshots](https://f-droid.org/en/docs/All_About_Descriptions_Graphics_and_Screenshots/#in-the-apps-source-repository)
+We follow the [Fastlane Supply](https://docs.fastlane.tools/actions/supply/) file structure for our metadata: [All About Descriptions, Graphics, and Screenshots](https://f-droid.org/en/docs/All_About_Descriptions_Graphics_and_Screenshots/#in-the-apps-source-repository).
 
-Please also have a look at Google Play [Graphic assets, screenshots, & video](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en&visit_id=638460088895328299-2981363794&rd=1) 
+Please also have a look at Google Play for [Graphic assets, screenshots, & video](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en&visit_id=638460088895328299-2981363794&rd=1).
 
 ## Structure
 
-
-
-Every app's metadata is placed in a directory named after the `applicationId`. Within this folder, the metadata follows Fatlane [supply](https://docs.fastlane.tools/actions/supply/) structure, see example below.
+Every app's metadata is placed in a directory named after the `applicationId`. Within this folder, the metadata follows the Fastlane [supply](https://docs.fastlane.tools/actions/supply/) structure, see example below:
 
 ```
 ├── en-US                       (en-US is the F-Droid fallback language)
@@ -52,20 +50,36 @@ To update the metadata, you can simply edit the files in the `applicationId` dir
 
 There are [4 options](https://gitlab.com/fdroid/fdroidserver/-/blob/master/fdroidserver/update.py?ref_type=heads#L1031) to integrate the metadata into the app's source repository:
 
-- `/src/<buildFlavor>/fastlane/metadata/android/<locale>`
-- `/fastlane/metadata/android/<locale>`
-- `/metadata/<locale>`
-- `/metadata/<applicationId>/<locale>`
+1. `/src/{buildFlavor}/fastlane/metadata/android/{locale}`
+2. `/fastlane/metadata/android/{locale}`
+3. `/metadata/{locale}`
+4. `/metadata/{applicationId}/{locale}`
 
+The metadata is stored in the `app-metadata` directory of the app's source repository. The `app-metadata` directory should be at the root of the repository.
 
-We use the last option, because it is the most flexible and allows us to have multiple metadata sets for different versions of the app.
-
-The metadata is stored in the `metadata` directory of the app's source repository. The `metadata` directory should be at the root of the repository. 
-
-So just create a git submodule in the app's source repository:
+Create a git submodule in the app's source repository:
 
 ```sh
-git submodule add https://gitlab.com/fdroid/thunderbird-android-metadata.git metadata
+git submodule add https://gitlab.com/fdroid/thunderbird-android-metadata.git app-metadata
 ```
 
+To allow F-Droid to pick up the metadata while building the app, you need to link from `app-metadata/{applicationId}` to `metadata` to comply with the 3rd lookup location. Modify your `{applicationId}.yml` at `fdroiddata` to include the following:
 
+```yaml
+Builds:
+  - versionName: "{versionName}"
+    versionCode: { versionCode }
+    ...
+    prebuild: ln -s app-metadata/{applicationId} metadata
+```
+
+or if `subdir` is set:
+
+```yaml
+Builds:
+  - versionName: "{versionName}"
+    versionCode: { versionCode }
+    ...
+    subdir: {subdir}
+    prebuild: ( cd .. && ln -s app-metadata/{applicationId} metadata )
+```
